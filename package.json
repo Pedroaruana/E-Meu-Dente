@@ -1,0 +1,12 @@
+{
+  "name": "e-meu-dente",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

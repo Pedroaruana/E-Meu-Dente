@@ -1,5 +1,8 @@
 import { useEffect, useRef } from 'react'
 
+// mp4 nao suporta canal alpha, entao a unica forma de "remover o fundo verde"
+// no navegador e desenhar cada frame num canvas e apagar os pixels verdes na mao.
+
 interface ChromaKeyVideoProps {
   src: string
   size: number
@@ -9,6 +12,10 @@ interface ChromaKeyVideoProps {
 export function ChromaKeyVideo({ src, size, onEnded }: ChromaKeyVideoProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  // onEnded muda de referencia a cada render do componente pai. Se ele entrasse
+  // nas deps do useEffect abaixo, o efeito reiniciaria e chamaria video.play()
+  // de novo depois do vídeo ja ter terminado — o que reinicia a reproducao do
+  // zero (foi um bug real: o video parecia estar em loop por causa disso).
   const onEndedRef = useRef(onEnded)
   onEndedRef.current = onEnded
 
@@ -31,6 +38,8 @@ export function ChromaKeyVideo({ src, size, onEnded }: ChromaKeyVideoProps) {
         let sw = video.videoWidth
         let sh = video.videoHeight
 
+        // "cover": recorta os lados do video (16:9) pra preencher a caixa
+        // quadrada sem esticar nem sobrar borda.
         if (sourceRatio > targetRatio) {
           sw = video.videoHeight * targetRatio
           sx = (video.videoWidth - sw) / 2
@@ -47,6 +56,7 @@ export function ChromaKeyVideo({ src, size, onEnded }: ChromaKeyVideoProps) {
           const r = data[i]
           const g = data[i + 1]
           const b = data[i + 2]
+          // pixel "verde o bastante" (chroma key) vira transparente (alpha = 0)
           if (g > 85 && g > r * 1.22 && g > b * 1.22) {
             data[i + 3] = 0
           }

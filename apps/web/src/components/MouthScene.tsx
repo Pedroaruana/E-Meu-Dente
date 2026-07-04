@@ -96,6 +96,9 @@ export function MouthScene({ onBack, onToothSelected }: MouthSceneProps) {
       return m
     }
 
+    // parte de um cubo arredondado generico e afunila os vertices de acordo
+    // com a altura (k = 0 na base, 1 no topo) pra cada tipo de dente ficar
+    // com o formato certo: incisivo em lamina, canino pontudo, molar mais reto.
     function buildTooth(type: string, w: number, h: number, d: number) {
       const grp = new THREE.Group()
       const mat = toothMaterial()
@@ -253,6 +256,8 @@ export function MouthScene({ onBack, onToothSelected }: MouthSceneProps) {
       onDone: (() => void) | null
     } | null = null
 
+    // anima a camera de um ponto a outro (posicao + mira) com facilitacao cubica,
+    // lido a cada frame no loop principal em vez de usar uma lib de tween externa.
     function flyTo(pos: THREE.Vector3, look: THREE.Vector3, dur: number, onDone: (() => void) | null) {
       camAnim = {
         t0: performance.now(), dur,

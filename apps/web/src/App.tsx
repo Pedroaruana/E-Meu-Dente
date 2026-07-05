@@ -3,6 +3,7 @@ import { Landing } from './components/Landing'
 import { MouthScene, type ToothInfo } from './components/MouthScene'
 import { SymptomPanel, type Symptom } from './components/SymptomPanel'
 import { QuestionFlow } from './components/QuestionFlow'
+import { getDiagnosis } from './data/diagnosis'
 
 type Screen = 'landing' | 'scene3d'
 
@@ -37,7 +38,8 @@ function App() {
             symptomLabel={selectedSymptom.label}
             onBack={resetSelection}
             onComplete={(answers) => {
-              console.log('respostas coletadas:', answers, 'para o dente', selectedTooth.fdi)
+              const diagnosis = getDiagnosis(selectedSymptom.id, answers)
+              console.log('diagnostico:', diagnosis, 'para o dente', selectedTooth.fdi)
             }}
           />
         )}

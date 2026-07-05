@@ -1,0 +1,106 @@
+.question-flow {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: min(360px, 92vw);
+  background: rgba(6, 20, 28, 0.94);
+  backdrop-filter: blur(10px);
+  border-left: 1px solid rgba(143, 208, 221, 0.22);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  padding: 32px 26px;
+  box-sizing: border-box;
+  color: #ecf9fc;
+  animation: question-flow-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@keyframes question-flow-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.question-flow__progress {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6fb0bf;
+}
+
+.question-flow__bar {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(143, 208, 221, 0.15);
+  overflow: hidden;
+  margin-bottom: 22px;
+}
+
+.question-flow__bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7ff0ff, #2fc4de);
+  transition: width 0.3s ease;
+}
+
+.question-flow__context {
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  color: #6fb0bf;
+}
+
+.question-flow__question {
+  margin: 0 0 22px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.question-flow__options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.question-flow__option {
+  width: 100%;
+  text-align: left;
+  background: rgba(143, 208, 221, 0.07);
+  border: 1px solid rgba(143, 208, 221, 0.22);
+  border-radius: 12px;
+  padding: 13px 16px;
+  color: #ecf9fc;
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.question-flow__option:hover {
+  background: rgba(143, 208, 221, 0.15);
+  transform: translateX(2px);
+}
+
+.question-flow__back {
+  margin-top: auto;
+  padding: 12px;
+  background: transparent;
+  color: #6fb0bf;
+  border: 1px solid rgba(111, 176, 191, 0.35);
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.question-flow__back:hover {
+  background: rgba(111, 176, 191, 0.1);
+}

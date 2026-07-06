@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
@@ -18,6 +18,12 @@ interface MouthSceneProps {
   onToothSelected: (tooth: ToothInfo) => void
 }
 
+export interface MouthSceneHandle {
+  resetCamera: () => void
+}
+
+type FlyTo = (pos: THREE.Vector3, look: THREE.Vector3, dur: number, onDone: (() => void) | null) => void
+
 const TOOTH_TYPES = [
   'molar', 'molar', 'premolar', 'premolar', 'canino', 'incisivo', 'incisivo',
   'incisivo', 'incisivo', 'canino', 'premolar', 'premolar', 'molar', 'molar',
@@ -31,11 +37,36 @@ const TOOTH_NAMES = [
 const FDI_UPPER = [17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27]
 const FDI_LOWER = [47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37]
 
-export function MouthScene({ onBack, onToothSelected }: MouthSceneProps) {
+export const MouthScene = forwardRef<MouthSceneHandle, MouthSceneProps>(function MouthScene(
+  { onBack, onToothSelected },
+  ref,
+) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [hoverLabel, setHoverLabel] = useState<string | null>(null)
   const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 })
   const [loading, setLoading] = useState(true)
+  // onToothSelected muda de referencia a cada render do App (state subindo).
+  // Se ela entrasse nas deps do useEffect da cena, o efeito inteiro reiniciaria
+  // bem no momento do clique — destruindo e recriando o WebGL, o que parecia
+  // um "refresh" da pagina. Guardamos a versao mais recente numa ref em vez disso.
+  const onToothSelectedRef = useRef(onToothSelected)
+  onToothSelectedRef.current = onToothSelected
+
+  // panelOpen controlava a interacao (hover/clique) só de dentro do closure do
+  // efeito abaixo, sem nenhuma forma de ser reiniciado de fora — por isso, ao
+  // voltar da tela de resultado, a cena ficava "travada" no dente anterior.
+  // Guardando numa ref e expondo resetCamera via useImperativeHandle, o App
+  // consegue pedir pra cena voltar ao estado inicial de verdade.
+  const panelOpenRef = useRef(false)
+  const flyToRef = useRef<FlyTo | null>(null)
+  const homeRef = useRef({ pos: new THREE.Vector3(0, 0.4, 3.7), look: new THREE.Vector3(0, 0, 0.1) })
+
+  useImperativeHandle(ref, () => ({
+    resetCamera: () => {
+      panelOpenRef.current = false
+      flyToRef.current?.(homeRef.current.pos, homeRef.current.look, 900, null)
+    },
+  }))
 
   useEffect(() => {
     const container = containerRef.current
@@ -78,13 +109,12 @@ export function MouthScene({ onBack, onToothSelected }: MouthSceneProps) {
     glow.position.set(0, 0, -3.2)
     scene.add(glow)
 
-    const camHome = new THREE.Vector3(0, 0.4, 3.7)
-    const lookHome = new THREE.Vector3(0, 0, 0.1)
+    const camHome = homeRef.current.pos
+    const lookHome = homeRef.current.look
     const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 40)
     camera.position.set(0, 0.9, 6.5)
 
     const gumMat = new THREE.MeshPhysicalMaterial({ color: 0xd66a76, roughness: 0.38, clearcoat: 0.7, clearcoatRoughness: 0.22 })
-    const gumDark = new THREE.MeshPhysicalMaterial({ color: 0xc25865, roughness: 0.42, clearcoat: 0.6, clearcoatRoughness: 0.26 })
 
     function toothMaterial() {
       const c = new THREE.Color(0xf5f0e4).lerp(new THREE.Color(0xece3d0), Math.random() * 0.45)
@@ -102,7 +132,7 @@ export function MouthScene({ onBack, onToothSelected }: MouthSceneProps) {
     function buildTooth(type: string, w: number, h: number, d: number) {
       const grp = new THREE.Group()
       const mat = toothMaterial()
-      const geo = new RoundedBoxGeometry(w, h, d, 5, Math.min(w, d) * 0.34)
+      const geo = new RoundedBoxGeometry(w, h, d, 6, Math.min(w, d) * 0.22)
       const pos = geo.attributes.position
       for (let i = 0; i < pos.count; i++) {
         const y = pos.getY(i)
@@ -111,12 +141,23 @@ export function MouthScene({ onBack, onToothSelected }: MouthSceneProps) {
           pos.setZ(i, pos.getZ(i) * (1 - k * 0.42))
           pos.setX(i, pos.getX(i) * (0.86 + k * 0.14))
         } else if (type === 'canino') {
-          const s = 1 - k * 0.45
+          // afunilamento suave: ponta um pouco mais fina que os vizinhos, sem
+          // virar cone. Esse tipo nao recebe o arredondamento generico abaixo
+          // pra nao somar dois estreitamentos e exagerar na ponta.
+          const s = 1 - Math.pow(k, 1.6) * 0.5
           pos.setX(i, pos.getX(i) * s)
           pos.setZ(i, pos.getZ(i) * s)
         } else {
           pos.setX(i, pos.getX(i) * (0.82 + k * 0.18))
           pos.setZ(i, pos.getZ(i) * (0.84 + k * 0.16))
+        }
+        // arredonda a borda de mordida/mastigacao (topo 30%) dos dentes que
+        // nao sao canino, pra tirar a cara de "caixinha" com topo reto.
+        if (type !== 'canino' && k > 0.7) {
+          const roundT = (k - 0.7) / 0.3
+          const pull = 1 - roundT * 0.22
+          pos.setX(i, pos.getX(i) * pull)
+          pos.setZ(i, pos.getZ(i) * pull)
         }
       }
       geo.computeVertexNormals()
@@ -150,12 +191,31 @@ export function MouthScene({ onBack, onToothSelected }: MouthSceneProps) {
       gumTube.receiveShadow = true
       arch.add(gumTube)
 
+      // largura "real" de cada dente, usada tanto pra construir a coroa quanto
+      // pra calcular a posicao dele na arcada.
+      const baseWidths = TOOTH_TYPES.map((type, i) =>
+        type === 'molar' ? 0.22 : type === 'premolar' ? 0.19 : type === 'canino' ? 0.17 : (i === 6 || i === 7) ? 0.185 : 0.16,
+      )
+      const totalWidth = baseWidths.reduce((sum, w) => sum + w, 0)
+      // posiciona cada dente proporcionalmente a sua propria largura em vez de
+      // passos angulares iguais — antes, dentes estreitos (lateral, pre-molar)
+      // sobravam vao enquanto os largos (molar, incisivo central) ficavam ok.
+      let cursor = 0
+      const centers = baseWidths.map((w) => {
+        const center = cursor + w / 2
+        cursor += w
+        return center / totalWidth
+      })
+
       for (let i = 0; i < 14; i++) {
-        const th = -1.26 + 2.52 * (i / 13)
+        const th = -1.26 + 2.52 * centers[i]
         const type = TOOTH_TYPES[i]
-        const w = type === 'molar' ? 0.24 : type === 'premolar' ? 0.18 : type === 'canino' ? 0.16 : (i === 6 || i === 7) ? 0.19 : 0.15
-        const h = type === 'incisivo' ? ((i === 6 || i === 7) ? 0.4 : 0.34) : type === 'canino' ? 0.37 : 0.28
-        const d = type === 'molar' ? 0.22 : type === 'premolar' ? 0.17 : type === 'canino' ? 0.14 : 0.1
+        // largura de colocacao 8% maior que a largura "real", só o suficiente
+        // pra fechar o vao entre os dentes sem virar um bloco so.
+        const baseW = baseWidths[i]
+        const w = baseW * 1.08
+        const h = type === 'incisivo' ? ((i === 6 || i === 7) ? 0.34 : 0.31) : type === 'canino' ? 0.33 : 0.29
+        const d = type === 'molar' ? 0.2 : type === 'premolar' ? 0.17 : type === 'canino' ? 0.15 : 0.11
         const t = buildTooth(type, w, h, d)
         const p = archPoint(th)
         const yTooth = 0.1 + h / 2 - 0.06
@@ -169,39 +229,39 @@ export function MouthScene({ onBack, onToothSelected }: MouthSceneProps) {
         }
         arch.add(t)
         teeth.push(t)
-
-        const collar = new THREE.Mesh(new THREE.TorusGeometry(Math.max(w, d) * 0.5, 0.035, 10, 22), gumDark)
-        collar.position.set(p.x, flip ? -0.1 : 0.1, p.z)
-        collar.rotation.x = Math.PI / 2
-        arch.add(collar)
       }
       return arch
     }
 
     const mouthGroup = new THREE.Group()
     const lowerArch = makeArch(false)
-    lowerArch.position.y = -0.5
+    lowerArch.position.y = -0.44
     lowerArch.rotation.x = THREE.MathUtils.degToRad(8)
     mouthGroup.add(lowerArch)
     const upperArch = makeArch(true)
-    upperArch.position.y = 0.5
+    upperArch.position.y = 0.38
     upperArch.rotation.x = THREE.MathUtils.degToRad(-8)
     mouthGroup.add(upperArch)
 
+    // uma unica malha (sem costura entre pecas), com um sulco central raso
+    // esculpido nos vertices do topo da esfera antes da escala esticar tudo
+    // no formato de lingua.
     const tongueMat = new THREE.MeshPhysicalMaterial({ color: 0xd8707c, roughness: 0.4, clearcoat: 0.75, clearcoatRoughness: 0.22 })
-    const tongueGrp = new THREE.Group()
-    for (const s of [-1, 1]) {
-      const half = new THREE.Mesh(new THREE.SphereGeometry(0.52, 24, 18), tongueMat)
-      half.scale.set(0.62, 0.26, 1.4)
-      half.position.set(s * 0.19, 0, 0)
-      half.castShadow = true
-      tongueGrp.add(half)
+    const tongueGeo = new THREE.SphereGeometry(0.62, 32, 24)
+    const tonguePos = tongueGeo.attributes.position
+    for (let i = 0; i < tonguePos.count; i++) {
+      const x = tonguePos.getX(i)
+      const y = tonguePos.getY(i)
+      if (y > 0.25) {
+        const grooveT = Math.max(0, 1 - Math.abs(x) / 0.22)
+        if (grooveT > 0) tonguePos.setY(i, y - grooveT * 0.09 * (y / 0.62))
+      }
     }
-    const tongueTip = new THREE.Mesh(new THREE.SphereGeometry(0.34, 20, 14), tongueMat)
-    tongueTip.scale.set(1.05, 0.22, 0.65)
-    tongueTip.position.set(0, 0, 0.68)
-    tongueGrp.add(tongueTip)
-    tongueGrp.position.set(0, 0.16, -0.02)
+    tongueGeo.computeVertexNormals()
+    const tongueGrp = new THREE.Mesh(tongueGeo, tongueMat)
+    tongueGrp.scale.set(1.0, 0.32, 1.55)
+    tongueGrp.castShadow = true
+    tongueGrp.position.set(0, 0.14, 0.03)
     lowerArch.add(tongueGrp)
 
     scene.add(mouthGroup)
@@ -248,7 +308,6 @@ export function MouthScene({ onBack, onToothSelected }: MouthSceneProps) {
     const pointer = new THREE.Vector2(-9, -9)
     const currentLook = lookHome.clone()
     let hovered: THREE.Group | null = null
-    let panelOpen = false
     let camAnim: {
       t0: number; dur: number
       fromP: THREE.Vector3; toP: THREE.Vector3
@@ -265,6 +324,7 @@ export function MouthScene({ onBack, onToothSelected }: MouthSceneProps) {
         fromL: currentLook.clone(), toL: look.clone(), onDone,
       }
     }
+    flyToRef.current = flyTo
 
     function setHover(obj: THREE.Group | null) {
       if (hovered === obj) return
@@ -295,7 +355,7 @@ export function MouthScene({ onBack, onToothSelected }: MouthSceneProps) {
     }
 
     function onClick() {
-      if (panelOpen || camAnim || !hovered) return
+      if (panelOpenRef.current || camAnim || !hovered) return
       const target = hovered
       setHover(null)
       const crown = target.userData.crown as THREE.Mesh
@@ -307,9 +367,9 @@ export function MouthScene({ onBack, onToothSelected }: MouthSceneProps) {
       target.getWorldPosition(wp)
       const dir = new THREE.Vector3().subVectors(camera.position, wp).normalize()
       const dest = wp.clone().add(dir.multiplyScalar(1.05)).add(new THREE.Vector3(0, 0.08, 0))
-      panelOpen = true
+      panelOpenRef.current = true
       flyTo(dest, wp, 750, () => {
-        onToothSelected(target.userData.info as ToothInfo)
+        onToothSelectedRef.current(target.userData.info as ToothInfo)
       })
     }
 
@@ -350,13 +410,13 @@ export function MouthScene({ onBack, onToothSelected }: MouthSceneProps) {
         camera.lookAt(currentLook)
       }
 
-      if (!panelOpen) {
+      if (!panelOpenRef.current) {
         mouthGroup.rotation.y = THREE.MathUtils.lerp(mouthGroup.rotation.y, pointer.x * 0.4 + Math.sin(t * 0.2) * 0.05, 0.04)
         mouthGroup.rotation.x = THREE.MathUtils.lerp(mouthGroup.rotation.x, -pointer.y * 0.14, 0.04)
       }
       tongueGrp.position.y = 0.16 + Math.sin(t * 0.9) * 0.012
 
-      if (!panelOpen && !camAnim) {
+      if (!panelOpenRef.current && !camAnim) {
         raycaster.setFromCamera(pointer, camera)
         const hit = raycaster.intersectObjects(teeth, true)[0]
         let grp: THREE.Object3D | null = hit ? hit.object : null
@@ -383,7 +443,7 @@ export function MouthScene({ onBack, onToothSelected }: MouthSceneProps) {
       envTex.dispose()
       container.removeChild(renderer.domElement)
     }
-  }, [onToothSelected])
+  }, [])
 
   return (
     <div className="mouth-scene">
@@ -398,9 +458,13 @@ export function MouthScene({ onBack, onToothSelected }: MouthSceneProps) {
         </div>
       )}
       <p className="mouth-scene__hint">gire com o mouse e clique no dente que está te incomodando</p>
+      <div className="mouth-scene__logo">
+        <span className="mouth-scene__logo-mark">🦷</span>
+        <span className="mouth-scene__logo-text">E Meu Dente?</span>
+      </div>
       <button type="button" className="mouth-scene__back" onClick={onBack}>
         ← voltar ao início
       </button>
     </div>
   )
-}
+})

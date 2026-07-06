@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Landing } from './components/Landing'
-import { MouthScene, type ToothInfo } from './components/MouthScene'
+import { MouthScene, type MouthSceneHandle, type ToothInfo } from './components/MouthScene'
 import { SymptomPanel, type Symptom } from './components/SymptomPanel'
 import { QuestionFlow } from './components/QuestionFlow'
 import { ResultScreen } from './components/ResultScreen'
@@ -13,17 +13,20 @@ function App() {
   const [selectedTooth, setSelectedTooth] = useState<ToothInfo | null>(null)
   const [selectedSymptom, setSelectedSymptom] = useState<Symptom | null>(null)
   const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null)
+  const mouthSceneRef = useRef<MouthSceneHandle>(null)
 
   function resetSelection() {
     setSelectedTooth(null)
     setSelectedSymptom(null)
     setDiagnosis(null)
+    mouthSceneRef.current?.resetCamera()
   }
 
   if (screen === 'scene3d') {
     return (
       <>
         <MouthScene
+          ref={mouthSceneRef}
           onBack={() => setScreen('landing')}
           onToothSelected={(tooth) => setSelectedTooth(tooth)}
         />

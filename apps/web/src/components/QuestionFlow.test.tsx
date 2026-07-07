@@ -52,10 +52,10 @@ describe('QuestionFlow', () => {
     )
 
     await user.click(screen.getByText('Só ao morder'))
-    await user.click(screen.getByText('Um pouco'))
+    await user.click(screen.getByText('Um pouco com os dois'))
     await user.click(screen.getByText('Alguns dias'))
 
-    expect(onComplete).toHaveBeenCalledWith(['Só ao morder', 'Um pouco', 'Alguns dias'])
+    expect(onComplete).toHaveBeenCalledWith(['Só ao morder', 'Um pouco com os dois', 'Alguns dias'])
   })
 
   it('chama onBack ao clicar em escolher outro dente', async () => {

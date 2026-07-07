@@ -74,10 +74,87 @@
   font-style: italic;
 }
 
-.result-screen__clinics-title {
+.result-screen__section-title {
   margin: 0 0 14px;
   font-size: 16px;
   font-weight: 700;
+}
+
+.result-screen__tips {
+  margin: 0 0 32px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.result-screen__tip {
+  position: relative;
+  padding-left: 22px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #a9dbe5;
+}
+
+.result-screen__tip::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #7ff0ff;
+  font-weight: 700;
+}
+
+.result-screen__filters {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.result-screen__address-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(143, 208, 221, 0.25);
+  background: rgba(143, 208, 221, 0.06);
+  color: #ecf9fc;
+  font-size: 14px;
+}
+
+.result-screen__address-input::placeholder {
+  color: #6fb0bf;
+}
+
+.result-screen__address-input:focus {
+  outline: none;
+  border-color: rgba(143, 208, 221, 0.55);
+}
+
+.result-screen__distance {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: #a9dbe5;
+}
+
+.result-screen__distance select {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(143, 208, 221, 0.25);
+  background: #0d1f2b;
+  color: #ecf9fc;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.result-screen__clinics-count {
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  color: #6fb0bf;
 }
 
 .result-screen__clinics {
@@ -85,6 +162,15 @@
   flex-direction: column;
   gap: 10px;
   margin-bottom: 32px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.result-screen__clinics-empty {
+  font-size: 13.5px;
+  color: #6fb0bf;
+  text-align: center;
+  padding: 20px 0;
 }
 
 .result-screen__clinic {

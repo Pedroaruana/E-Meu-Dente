@@ -88,6 +88,16 @@
   transform: translateX(2px);
 }
 
+.question-flow__status {
+  margin: 0 0 20px;
+  font-size: 15px;
+  color: #a9dbe5;
+}
+
+.question-flow__status--error {
+  color: #f09595;
+}
+
 .question-flow__back {
   margin-top: auto;
   padding: 12px;

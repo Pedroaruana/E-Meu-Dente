@@ -9,9 +9,11 @@ interface QuestionFlowProps {
   symptomLabel: string
   onBack: () => void
   onComplete: (answers: string[]) => void
+  loading: boolean
+  error: string | null
 }
 
-export function QuestionFlow({ tooth, symptomId, symptomLabel, onBack, onComplete }: QuestionFlowProps) {
+export function QuestionFlow({ tooth, symptomId, symptomLabel, onBack, onComplete, loading, error }: QuestionFlowProps) {
   const questions = SYMPTOM_QUESTIONS[symptomId] ?? []
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<string[]>([])
@@ -21,14 +23,38 @@ export function QuestionFlow({ tooth, symptomId, symptomLabel, onBack, onComplet
   function handleAnswer(option: string) {
     const next = [...answers, option]
     setAnswers(next)
-    if (step + 1 < questions.length) {
-      setStep(step + 1)
-    } else {
+    // sempre avanca o step, mesmo na ultima pergunta — e isso que faz
+    // "question" virar undefined depois e trocar pra tela de status
+    // (carregando/erro) em vez de continuar mostrando a ultima pergunta.
+    setStep(step + 1)
+    if (step + 1 >= questions.length) {
       onComplete(next)
     }
   }
 
-  if (!question) return null
+  // depois da ultima pergunta, "question" fica undefined — usamos isso pra
+  // mostrar o estado de carregando/erro da chamada a api em vez do formulario.
+  if (!question) {
+    return (
+      <div className="question-flow">
+        <p className="question-flow__context">
+          {tooth.name} · {symptomLabel}
+        </p>
+        {loading && <p className="question-flow__status">gerando diagnóstico…</p>}
+        {error && (
+          <>
+            <p className="question-flow__status question-flow__status--error">{error}</p>
+            <button type="button" className="question-flow__option" onClick={() => onComplete(answers)}>
+              tentar de novo
+            </button>
+          </>
+        )}
+        <button type="button" className="question-flow__back" onClick={onBack}>
+          ← escolher outro dente
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="question-flow">

@@ -4,7 +4,7 @@ import { MouthScene, type MouthSceneHandle, type ToothInfo } from './components/
 import { SymptomPanel, type Symptom } from './components/SymptomPanel'
 import { QuestionFlow } from './components/QuestionFlow'
 import { ResultScreen } from './components/ResultScreen'
-import { getDiagnosis, type Diagnosis } from './data/diagnosis'
+import { fetchDiagnosis, type Diagnosis } from './api/client'
 
 type Screen = 'landing' | 'scene3d'
 
@@ -13,13 +13,29 @@ function App() {
   const [selectedTooth, setSelectedTooth] = useState<ToothInfo | null>(null)
   const [selectedSymptom, setSelectedSymptom] = useState<Symptom | null>(null)
   const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null)
+  const [loadingDiagnosis, setLoadingDiagnosis] = useState(false)
+  const [diagnosisError, setDiagnosisError] = useState<string | null>(null)
   const mouthSceneRef = useRef<MouthSceneHandle>(null)
 
   function resetSelection() {
     setSelectedTooth(null)
     setSelectedSymptom(null)
     setDiagnosis(null)
+    setDiagnosisError(null)
     mouthSceneRef.current?.resetCamera()
+  }
+
+  async function handleAnswers(symptomId: string, answers: string[]) {
+    setLoadingDiagnosis(true)
+    setDiagnosisError(null)
+    try {
+      const result = await fetchDiagnosis(symptomId, answers)
+      setDiagnosis(result)
+    } catch {
+      setDiagnosisError('Não foi possível gerar o diagnóstico agora. Tente novamente.')
+    } finally {
+      setLoadingDiagnosis(false)
+    }
   }
 
   if (screen === 'scene3d') {
@@ -43,9 +59,9 @@ function App() {
             symptomId={selectedSymptom.id}
             symptomLabel={selectedSymptom.label}
             onBack={resetSelection}
-            onComplete={(answers) => {
-              setDiagnosis(getDiagnosis(selectedSymptom.id, answers))
-            }}
+            onComplete={(answers) => handleAnswers(selectedSymptom.id, answers)}
+            loading={loadingDiagnosis}
+            error={diagnosisError}
           />
         )}
         {selectedTooth && diagnosis && (

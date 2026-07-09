@@ -14,6 +14,8 @@ describe('QuestionFlow', () => {
         symptomLabel="Dor ao mastigar"
         onBack={() => {}}
         onComplete={() => {}}
+        loading={false}
+        error={null}
       />,
     )
 
@@ -30,6 +32,8 @@ describe('QuestionFlow', () => {
         symptomLabel="Dor ao mastigar"
         onBack={() => {}}
         onComplete={() => {}}
+        loading={false}
+        error={null}
       />,
     )
 
@@ -48,6 +52,8 @@ describe('QuestionFlow', () => {
         symptomLabel="Dor ao mastigar"
         onBack={() => {}}
         onComplete={onComplete}
+        loading={false}
+        error={null}
       />,
     )
 
@@ -68,11 +74,84 @@ describe('QuestionFlow', () => {
         symptomLabel="Dor ao mastigar"
         onBack={onBack}
         onComplete={() => {}}
+        loading={false}
+        error={null}
       />,
     )
 
     await user.click(screen.getByText('← escolher outro dente'))
 
     expect(onBack).toHaveBeenCalledOnce()
+  })
+
+  // depois da ultima pergunta o formulario some e vira tela de status —
+  // esses dois testes cobrem esse novo estado, ligado a chamada real da api.
+  it('mostra "gerando diagnostico" enquanto loading esta true', async () => {
+    const user = userEvent.setup()
+    const { rerender } = render(
+      <QuestionFlow
+        tooth={tooth}
+        symptomId="dor"
+        symptomLabel="Dor ao mastigar"
+        onBack={() => {}}
+        onComplete={() => {}}
+        loading={false}
+        error={null}
+      />,
+    )
+
+    await user.click(screen.getByText('Só ao morder'))
+    await user.click(screen.getByText('Um pouco com os dois'))
+    await user.click(screen.getByText('Alguns dias'))
+
+    rerender(
+      <QuestionFlow
+        tooth={tooth}
+        symptomId="dor"
+        symptomLabel="Dor ao mastigar"
+        onBack={() => {}}
+        onComplete={() => {}}
+        loading
+        error={null}
+      />,
+    )
+
+    expect(screen.getByText('gerando diagnóstico…')).toBeInTheDocument()
+  })
+
+  it('mostra a mensagem de erro e permite tentar de novo', async () => {
+    const user = userEvent.setup()
+    const onComplete = vi.fn()
+    const { rerender } = render(
+      <QuestionFlow
+        tooth={tooth}
+        symptomId="dor"
+        symptomLabel="Dor ao mastigar"
+        onBack={() => {}}
+        onComplete={onComplete}
+        loading={false}
+        error={null}
+      />,
+    )
+
+    await user.click(screen.getByText('Só ao morder'))
+    await user.click(screen.getByText('Um pouco com os dois'))
+    await user.click(screen.getByText('Alguns dias'))
+
+    rerender(
+      <QuestionFlow
+        tooth={tooth}
+        symptomId="dor"
+        symptomLabel="Dor ao mastigar"
+        onBack={() => {}}
+        onComplete={onComplete}
+        loading={false}
+        error="Não foi possível gerar o diagnóstico agora. Tente novamente."
+      />,
+    )
+
+    expect(screen.getByText(/não foi possível gerar/i)).toBeInTheDocument()
+    await user.click(screen.getByText('tentar de novo'))
+    expect(onComplete).toHaveBeenCalledWith(['Só ao morder', 'Um pouco com os dois', 'Alguns dias'])
   })
 })

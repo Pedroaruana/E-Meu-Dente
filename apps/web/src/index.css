@@ -23,3 +23,13 @@ h1, h2, p {
 button {
   font-family: inherit;
 }
+
+.scene-loading {
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0d1f2b;
+  color: #a9dbe5;
+  font-size: 14px;
+}

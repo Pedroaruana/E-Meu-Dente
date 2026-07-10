@@ -1,10 +1,14 @@
-import { useRef, useState } from 'react'
+import { lazy, Suspense, useRef, useState } from 'react'
 import { Landing } from './components/Landing'
-import { MouthScene, type MouthSceneHandle, type ToothInfo } from './components/MouthScene'
+import type { MouthSceneHandle, ToothInfo } from './components/MouthScene'
 import { SymptomPanel, type Symptom } from './components/SymptomPanel'
 import { QuestionFlow } from './components/QuestionFlow'
 import { ResultScreen } from './components/ResultScreen'
 import { fetchDiagnosis, type Diagnosis } from './api/client'
+
+// three.js e o grosso do bundle (~700kb) — carregando so quando o usuario
+// clica em "Entrar", a tela inicial fica leve e rapida de verdade.
+const MouthScene = lazy(() => import('./components/MouthScene'))
 
 type Screen = 'landing' | 'scene3d'
 
@@ -41,11 +45,13 @@ function App() {
   if (screen === 'scene3d') {
     return (
       <>
-        <MouthScene
-          ref={mouthSceneRef}
-          onBack={() => setScreen('landing')}
-          onToothSelected={(tooth) => setSelectedTooth(tooth)}
-        />
+        <Suspense fallback={<div className="scene-loading">carregando…</div>}>
+          <MouthScene
+            ref={mouthSceneRef}
+            onBack={() => setScreen('landing')}
+            onToothSelected={(tooth) => setSelectedTooth(tooth)}
+          />
+        </Suspense>
         {selectedTooth && !selectedSymptom && (
           <SymptomPanel
             tooth={selectedTooth}

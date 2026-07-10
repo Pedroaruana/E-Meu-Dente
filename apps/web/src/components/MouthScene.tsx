@@ -472,3 +472,8 @@ export const MouthScene = forwardRef<MouthSceneHandle, MouthSceneProps>(function
     </div>
   )
 })
+
+// export default (alem do nomeado) pra dar pra usar com React.lazy() —
+// o three.js e a maior parte do bundle, entao só carrega quando o usuario
+// realmente clica em "Entrar no ambiente 3D", nao no carregamento inicial.
+export default MouthScene

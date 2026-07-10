@@ -112,6 +112,16 @@
   margin-bottom: 14px;
 }
 
+.result-screen__hint {
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  color: #6fb0bf;
+}
+
+.result-screen__address-wrap {
+  position: relative;
+}
+
 .result-screen__address-input {
   width: 100%;
   box-sizing: border-box;
@@ -130,6 +140,44 @@
 .result-screen__address-input:focus {
   outline: none;
   border-color: rgba(143, 208, 221, 0.55);
+}
+
+.result-screen__suggestions {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: #0f2732;
+  border: 1px solid rgba(143, 208, 221, 0.25);
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.result-screen__suggestions li + li {
+  margin-top: 2px;
+}
+
+.result-screen__suggestions button {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: #ecf9fc;
+  font-size: 13px;
+  line-height: 1.4;
+  padding: 9px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.result-screen__suggestions button:hover {
+  background: rgba(143, 208, 221, 0.14);
 }
 
 .result-screen__distance {

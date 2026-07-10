@@ -5,6 +5,7 @@ import { rateLimit } from 'express-rate-limit'
 import { healthRouter } from './routes/health.js'
 import { diagnosisRouter } from './routes/diagnosis.js'
 import { clinicsRouter } from './routes/clinics.js'
+import { geocodeRouter } from './routes/geocode.js'
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js'
 
 const allowedOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
@@ -29,6 +30,7 @@ export function createApp() {
   app.use('/health', healthRouter)
   app.use('/diagnosis', diagnosisRouter)
   app.use('/clinics', clinicsRouter)
+  app.use('/geocode', geocodeRouter)
 
   app.use(notFoundHandler)
   app.use(errorHandler)

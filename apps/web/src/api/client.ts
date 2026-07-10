@@ -18,6 +18,12 @@ export interface Clinic {
   url: string
 }
 
+export interface AddressSuggestion {
+  label: string
+  lat: number
+  lon: number
+}
+
 export class ApiError extends Error {}
 
 async function parseErrorMessage(response: Response): Promise<string> {
@@ -56,4 +62,15 @@ export async function fetchClinics(address: string, radiusKm: number): Promise<C
 
   const data = (await response.json()) as { clinics: Clinic[] }
   return data.clinics
+}
+
+export async function fetchAddressSuggestions(query: string): Promise<AddressSuggestion[]> {
+  const url = new URL(`${API_URL}/geocode/suggestions`)
+  url.searchParams.set('q', query)
+
+  const response = await fetch(url)
+  if (!response.ok) return []
+
+  const data = (await response.json()) as { suggestions: AddressSuggestion[] }
+  return data.suggestions
 }

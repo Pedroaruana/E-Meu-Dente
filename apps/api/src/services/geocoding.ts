@@ -8,6 +8,10 @@ export interface GeoPoint {
   lon: number
 }
 
+export interface AddressSuggestion extends GeoPoint {
+  label: string
+}
+
 export async function geocodeAddress(address: string): Promise<GeoPoint | null> {
   const url = new URL(NOMINATIM_URL)
   url.searchParams.set('q', address)
@@ -26,4 +30,24 @@ export async function geocodeAddress(address: string): Promise<GeoPoint | null> 
   if (results.length === 0) return null
 
   return { lat: Number(results[0].lat), lon: Number(results[0].lon) }
+}
+
+// usado pro autocomplete: devolve varias opcoes (nao só a primeira) pra
+// o usuario escolher o endereco certo em vez de digitar tudo as cegas.
+export async function suggestAddresses(query: string): Promise<AddressSuggestion[]> {
+  const url = new URL(NOMINATIM_URL)
+  url.searchParams.set('q', query)
+  url.searchParams.set('format', 'json')
+  url.searchParams.set('limit', '5')
+
+  const response = await fetch(url, {
+    headers: { 'User-Agent': USER_AGENT },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Nominatim respondeu ${response.status}`)
+  }
+
+  const results = (await response.json()) as Array<{ lat: string; lon: string; display_name: string }>
+  return results.map((r) => ({ label: r.display_name, lat: Number(r.lat), lon: Number(r.lon) }))
 }

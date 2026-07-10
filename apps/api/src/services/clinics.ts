@@ -25,7 +25,9 @@ export function findNearbyClinics(origin: GeoPoint, radiusKm: number): Clinic[] 
     .map((clinic) => ({
       name: clinic.name,
       address: clinic.address,
-      url: clinic.url,
+      // as clinicas sao ficticias (sem site de verdade), entao o link leva
+      // pro Google Maps na coordenada exata em vez de uma url quebrada.
+      url: `https://www.google.com/maps/search/?api=1&query=${clinic.lat},${clinic.lon}`,
       distanceKm: Math.round(haversineKm(origin, { lat: clinic.lat, lon: clinic.lon }) * 10) / 10,
     }))
     .filter((clinic) => clinic.distanceKm <= radiusKm)

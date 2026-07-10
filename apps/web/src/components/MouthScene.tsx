@@ -144,7 +144,11 @@ export const MouthScene = forwardRef<MouthSceneHandle, MouthSceneProps>(function
           // afunilamento suave: ponta um pouco mais fina que os vizinhos, sem
           // virar cone. Esse tipo nao recebe o arredondamento generico abaixo
           // pra nao somar dois estreitamentos e exagerar na ponta.
-          const s = 1 - Math.pow(k, 1.6) * 0.5
+          // Math.max(k, 0) evita passar numero negativo pro Math.pow — sem
+          // isso, um k bem perto de zero (tipo -0.0000001 por imprecisao de
+          // ponto flutuante) vira NaN, porque potencia fracionaria de numero
+          // negativo nao existe nos reais e o JS devolve NaN nesse caso.
+          const s = 1 - Math.pow(Math.max(k, 0), 1.6) * 0.5
           pos.setX(i, pos.getX(i) * s)
           pos.setZ(i, pos.getZ(i) * s)
         } else {

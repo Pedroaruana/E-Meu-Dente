@@ -151,6 +151,29 @@
   font-weight: 600;
 }
 
+.result-screen__search {
+  padding: 12px;
+  background: linear-gradient(180deg, #7ff0ff, #2fc4de);
+  color: #04222b;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.result-screen__search:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.result-screen__error {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: #f09595;
+}
+
 .result-screen__clinics-count {
   margin: 0 0 12px;
   font-size: 12.5px;

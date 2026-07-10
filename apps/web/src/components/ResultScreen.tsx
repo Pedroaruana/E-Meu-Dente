@@ -1,6 +1,5 @@
-import { useMemo, useState } from 'react'
-import type { Diagnosis } from '../data/diagnosis'
-import { MOCK_CLINICS } from '../data/mockClinics'
+import { useState } from 'react'
+import { fetchClinics, type Clinic, type Diagnosis } from '../api/client'
 import type { ToothInfo } from './MouthScene'
 import './ResultScreen.css'
 
@@ -21,11 +20,27 @@ const DISTANCE_OPTIONS = [2, 5, 10, 20]
 export function ResultScreen({ tooth, diagnosis, onRestart }: ResultScreenProps) {
   const [address, setAddress] = useState('')
   const [maxDistance, setMaxDistance] = useState(10)
+  const [clinics, setClinics] = useState<Clinic[] | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const clinics = useMemo(
-    () => MOCK_CLINICS.filter((clinic) => clinic.distanceKm <= maxDistance).sort((a, b) => a.distanceKm - b.distanceKm),
-    [maxDistance],
-  )
+  async function handleSearch() {
+    if (address.trim().length < 3) {
+      setError('Digite um endereço válido pra buscar.')
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await fetchClinics(address, maxDistance)
+      setClinics(result)
+    } catch {
+      setError('Não conseguimos localizar esse endereço. Tente ser mais específico.')
+      setClinics(null)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="result-screen">
@@ -62,6 +77,7 @@ export function ResultScreen({ tooth, diagnosis, onRestart }: ResultScreenProps)
             placeholder="Seu endereço (ex: Av. Paulista, São Paulo)"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           />
           <div className="result-screen__distance">
             <label htmlFor="distance-filter">Distância máxima</label>
@@ -77,30 +93,38 @@ export function ResultScreen({ tooth, diagnosis, onRestart }: ResultScreenProps)
               ))}
             </select>
           </div>
+          <button type="button" className="result-screen__search" onClick={handleSearch} disabled={loading}>
+            {loading ? 'buscando…' : 'buscar clínicas'}
+          </button>
         </div>
 
-        <p className="result-screen__clinics-count">{clinics.length} clínicas encontradas</p>
+        {error && <p className="result-screen__error">{error}</p>}
 
-        <div className="result-screen__clinics">
-          {clinics.map((clinic) => (
-            <a
-              key={clinic.name}
-              className="result-screen__clinic"
-              href={clinic.url}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <div>
-                <p className="result-screen__clinic-name">{clinic.name}</p>
-                <p className="result-screen__clinic-address">{clinic.address}</p>
-              </div>
-              <span className="result-screen__clinic-distance">{clinic.distanceKm} km</span>
-            </a>
-          ))}
-          {clinics.length === 0 && (
-            <p className="result-screen__clinics-empty">Nenhuma clínica dentro dessa distância. Tente aumentar o filtro.</p>
-          )}
-        </div>
+        {clinics && (
+          <>
+            <p className="result-screen__clinics-count">{clinics.length} clínicas encontradas</p>
+            <div className="result-screen__clinics">
+              {clinics.map((clinic) => (
+                <a
+                  key={clinic.name}
+                  className="result-screen__clinic"
+                  href={clinic.url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <div>
+                    <p className="result-screen__clinic-name">{clinic.name}</p>
+                    <p className="result-screen__clinic-address">{clinic.address}</p>
+                  </div>
+                  <span className="result-screen__clinic-distance">{clinic.distanceKm} km</span>
+                </a>
+              ))}
+              {clinics.length === 0 && (
+                <p className="result-screen__clinics-empty">Nenhuma clínica dentro dessa distância. Tente aumentar o filtro.</p>
+              )}
+            </div>
+          </>
+        )}
 
         <button type="button" className="result-screen__restart" onClick={onRestart}>
           ← testar outro dente

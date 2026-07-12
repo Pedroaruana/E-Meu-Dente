@@ -104,7 +104,7 @@ export function ResultScreen({ tooth, diagnosis, onRestart }: ResultScreenProps)
 
         <h2 className="result-screen__section-title">Clínicas perto de você</h2>
         <p className="result-screen__hint">
-          A lista de clínicas de exemplo está em São Paulo — endereços de outras cidades não vão encontrar nada por perto.
+          A lista de clínicas de exemplo cobre São Paulo, Rio de Janeiro, Salvador, Brasília, Belo Horizonte, Curitiba, Porto Alegre e Recife — endereços fora dessas capitais não vão encontrar nada por perto.
         </p>
 
         <div className="result-screen__filters">

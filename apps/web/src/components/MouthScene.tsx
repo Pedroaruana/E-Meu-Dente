@@ -58,6 +58,10 @@ export const MouthScene = forwardRef<MouthSceneHandle, MouthSceneProps>(function
   const [hoverLabel, setHoverLabel] = useState<string | null>(null)
   const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 })
   const [loading, setLoading] = useState(true)
+  // lista espelho dos dentes pra renderizar os botoes invisiveis de teclado —
+  // populada depois que a cena monta a arcada (os dados reais vivem dentro
+  // do THREE.Group, useState so serve pra ter algo pra mapear no JSX).
+  const [toothList, setToothList] = useState<ToothInfo[]>([])
   // onToothSelected muda de referencia a cada render do App (state subindo).
   // Se ela entrasse nas deps do useEffect da cena, o efeito inteiro reiniciaria
   // bem no momento do clique — destruindo e recriando o WebGL, o que parecia
@@ -72,11 +76,20 @@ export const MouthScene = forwardRef<MouthSceneHandle, MouthSceneProps>(function
   // consegue pedir pra cena voltar ao estado inicial de verdade.
   const panelOpenRef = useRef(false)
   const flyToRef = useRef<FlyTo | null>(null)
+  const clearSelectedRef = useRef<(() => void) | null>(null)
   const homeRef = useRef({ pos: new THREE.Vector3(0, 0.4, 3.7), look: new THREE.Vector3(0, 0, 0.1) })
+
+  // ponte entre os botoes invisiveis (DOM, focaveis por teclado) e os objetos
+  // do three.js (que so existem dentro do closure do useEffect abaixo). os
+  // botoes chamam essas refs por indice em vez de manipular a cena direto.
+  const teethRef = useRef<THREE.Group[]>([])
+  const hoverToothRef = useRef<(i: number | null) => void>(() => {})
+  const selectToothRef = useRef<(i: number) => void>(() => {})
 
   useImperativeHandle(ref, () => ({
     resetCamera: () => {
       panelOpenRef.current = false
+      clearSelectedRef.current?.()
       flyToRef.current?.(homeRef.current.pos, homeRef.current.look, 900, null)
     },
   }))
@@ -283,6 +296,9 @@ export const MouthScene = forwardRef<MouthSceneHandle, MouthSceneProps>(function
 
     scene.add(mouthGroup)
 
+    teethRef.current = teeth
+    setToothList(teeth.map((t) => t.userData.info as ToothInfo))
+
     const sc = document.createElement('canvas')
     sc.width = sc.height = 256
     const sg = sc.getContext('2d')!
@@ -325,6 +341,18 @@ export const MouthScene = forwardRef<MouthSceneHandle, MouthSceneProps>(function
     const pointer = new THREE.Vector2(-9, -9)
     const currentLook = lookHome.clone()
     let hovered: THREE.Group | null = null
+    // selected fica com um brilho continuo (pulsando no loop de animacao,
+    // nao so um valor fixo) enquanto o painel de sintomas/perguntas ta
+    // aberto — diferente do hover, que e so um flash rapido ao passar o
+    // mouse. Isso da uma pista visual permanente de qual dente ta em foco,
+    // e serve tambem como indicador de foco pra quem navega por teclado.
+    let selected: THREE.Group | null = null
+    // enquanto o foco veio do teclado, o raycast do mouse (que roda every
+    // frame usando a ultima posicao conhecida do pointer) nao pode
+    // sobrescrever o hover — senao o dente focado via Tab perderia o
+    // destaque no frame seguinte. Qualquer movimento real do mouse retoma
+    // o controle imediatamente.
+    let keyboardHoverActive = false
     let camAnim: {
       t0: number; dur: number
       fromP: THREE.Vector3; toP: THREE.Vector3
@@ -345,7 +373,7 @@ export const MouthScene = forwardRef<MouthSceneHandle, MouthSceneProps>(function
 
     function setHover(obj: THREE.Group | null) {
       if (hovered === obj) return
-      if (hovered) {
+      if (hovered && hovered !== selected) {
         const crown = hovered.userData.crown as THREE.Mesh
         ;(crown.material as THREE.MeshPhysicalMaterial).emissive.setHex(0x000000)
         hovered.scale.setScalar(1)
@@ -364,22 +392,21 @@ export const MouthScene = forwardRef<MouthSceneHandle, MouthSceneProps>(function
       }
     }
 
-    function onPointerMove(e: PointerEvent) {
-      const rect = container!.getBoundingClientRect()
-      pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
-      pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
-      setHoverPos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+    function setSelected(obj: THREE.Group | null) {
+      if (selected && selected !== obj) {
+        const crown = selected.userData.crown as THREE.Mesh
+        ;(crown.material as THREE.MeshPhysicalMaterial).emissive.setHex(0x000000)
+        ;(crown.material as THREE.MeshPhysicalMaterial).emissiveIntensity = 0
+      }
+      selected = obj
     }
+    clearSelectedRef.current = () => setSelected(null)
 
-    function onClick() {
-      if (panelOpenRef.current || camAnim || !hovered) return
-      const target = hovered
+    // usada tanto pelo clique do mouse quanto pela selecao via teclado — as
+    // duas so precisam chegar aqui com o Group certo em maos.
+    function selectTooth(target: THREE.Group) {
       setHover(null)
-      const crown = target.userData.crown as THREE.Mesh
-      const mat = crown.material as THREE.MeshPhysicalMaterial
-      mat.emissive.setHex(0x2fa8c4)
-      mat.emissiveIntensity = 0.35
-
+      setSelected(target)
       const wp = new THREE.Vector3()
       target.getWorldPosition(wp)
       const dir = new THREE.Vector3().subVectors(camera.position, wp).normalize()
@@ -390,8 +417,36 @@ export const MouthScene = forwardRef<MouthSceneHandle, MouthSceneProps>(function
       })
     }
 
+    function onPointerMove(e: PointerEvent) {
+      keyboardHoverActive = false
+      const rect = container!.getBoundingClientRect()
+      pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+      pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+      setHoverPos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+    }
+
+    function onClick() {
+      if (panelOpenRef.current || camAnim || !hovered) return
+      selectTooth(hovered)
+    }
+
     container.addEventListener('pointermove', onPointerMove)
     container.addEventListener('click', onClick)
+
+    // os botoes invisiveis do JSX (um por dente, focaveis por Tab) chamam
+    // essas duas refs em vez de mexer no three.js direto — foco reusa o
+    // mesmo brilho do hover do mouse, e Enter/Espaco reusa o mesmo fluxo
+    // de selecao do clique.
+    hoverToothRef.current = (i) => {
+      if (panelOpenRef.current) return
+      keyboardHoverActive = i !== null
+      setHover(i === null ? null : teethRef.current[i] ?? null)
+    }
+    selectToothRef.current = (i) => {
+      if (panelOpenRef.current || camAnim) return
+      const target = teethRef.current[i]
+      if (target) selectTooth(target)
+    }
 
     function handleResize() {
       const w = container!.clientWidth
@@ -434,7 +489,17 @@ export const MouthScene = forwardRef<MouthSceneHandle, MouthSceneProps>(function
       }
       tongueGrp.position.y = 0.16 + Math.sin(t * 0.9) * 0.012
 
-      if (!panelOpenRef.current && !camAnim) {
+      if (selected) {
+        // brilho sutil e continuo, sem pulsar a escala — bloom (ja usado na
+        // cena) reage a intensidade emissiva, entao a oscilacao aqui gera um
+        // "respirar" suave em vez de um pisca-pisca chamativo.
+        const crown = selected.userData.crown as THREE.Mesh
+        const mat = crown.material as THREE.MeshPhysicalMaterial
+        mat.emissive.setHex(0x2fa8c4)
+        mat.emissiveIntensity = 0.16 + Math.sin(t * 2.1) * 0.08
+      }
+
+      if (!panelOpenRef.current && !camAnim && !keyboardHoverActive) {
         raycaster.setFromCamera(pointer, camera)
         const hit = raycaster.intersectObjects(teeth, true)[0]
         let grp: THREE.Object3D | null = hit ? hit.object : null
@@ -465,7 +530,9 @@ export const MouthScene = forwardRef<MouthSceneHandle, MouthSceneProps>(function
 
   return (
     <div className="mouth-scene">
-      <div ref={containerRef} className="mouth-scene__canvas" />
+      {/* o canvas em si e so pixel — a semantica real pra leitor de tela
+          vive nos botoes abaixo, entao ele fica marcado como decorativo. */}
+      <div ref={containerRef} className="mouth-scene__canvas" aria-hidden="true" />
       {loading && <div className="mouth-scene__loading">preparando o modelo…</div>}
       {hoverLabel && (
         <div
@@ -475,6 +542,33 @@ export const MouthScene = forwardRef<MouthSceneHandle, MouthSceneProps>(function
           {hoverLabel}
         </div>
       )}
+      {/* leitor de tela nao renderiza a cena 3d, entao esse span (fora da
+          tela, nao "display:none") anuncia o mesmo texto do tooltip visual
+          sempre que o hover muda — seja por mouse ou por foco de teclado. */}
+      <div className="visually-hidden" aria-live="polite">{hoverLabel}</div>
+      {/* um botao real por dente, focavel por Tab e fora da tela — Enter/
+          Espaco disparam a mesma selecao do clique do mouse. o brilho
+          continuo do dente em foco (no three.js) funciona como indicador
+          visual de foco pra quem navega so por teclado. */}
+      <div className="visually-hidden" role="group" aria-label="Selecionar um dente">
+        {toothList.map((tooth, i) => (
+          <button
+            key={tooth.fdi}
+            type="button"
+            onFocus={() => hoverToothRef.current(i)}
+            onBlur={() => hoverToothRef.current(null)}
+            onClick={() => selectToothRef.current(i)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                selectToothRef.current(i)
+              }
+            }}
+          >
+            {tooth.name}, dente {tooth.fdi}
+          </button>
+        ))}
+      </div>
       <p className="mouth-scene__hint">toque ou clique no dente que está te incomodando</p>
       <div className="mouth-scene__logo">
         <span className="mouth-scene__logo-mark">🦷</span>

@@ -33,3 +33,18 @@ button {
   color: #a9dbe5;
   font-size: 14px;
 }
+
+/* padrao classico de a11y: tira o elemento da area visivel sem usar
+   display:none/visibility:hidden, que tirariam ele do foco e da leitura
+   por leitor de tela junto. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

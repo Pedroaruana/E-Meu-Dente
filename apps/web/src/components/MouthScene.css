@@ -97,3 +97,34 @@
 .mouth-scene__back:hover {
   background: rgba(143, 208, 221, 0.16);
 }
+
+@media (max-width: 640px) {
+  .mouth-scene__logo {
+    top: 14px;
+    left: 14px;
+    gap: 6px;
+  }
+
+  .mouth-scene__logo-mark {
+    font-size: 16px;
+  }
+
+  .mouth-scene__logo-text {
+    font-size: 15px;
+  }
+
+  .mouth-scene__back {
+    top: 50px;
+    left: 14px;
+    font-size: 12px;
+    padding: 7px 12px;
+  }
+
+  .mouth-scene__hint {
+    top: auto;
+    bottom: 18px;
+    left: 50%;
+    max-width: 86%;
+    font-size: 12px;
+  }
+}

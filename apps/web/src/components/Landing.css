@@ -177,6 +177,7 @@
 
 .landing__bubble {
   position: absolute;
+  z-index: 2;
   top: -44px;
   left: 50%;
   transform: translateX(-42%);
@@ -403,5 +404,57 @@
 @media (max-width: 480px) {
   .landing__cta {
     flex-direction: column-reverse;
+  }
+}
+
+/* abaixo de 640px o conteudo nao cabe espremido numa tela so (era isso que
+   causava o hero "vazar" por cima do bloco de steps) — em vez de forcar
+   tudo em 100svh, deixa a pagina rolar normalmente como qualquer site. */
+@media (max-width: 640px) {
+  .landing {
+    height: auto;
+    min-height: 100svh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px 18px 24px;
+    gap: 28px;
+  }
+
+  .landing__hero {
+    flex: none;
+    justify-content: flex-start;
+  }
+
+  .landing__title {
+    font-size: clamp(28px, 9vw, 40px);
+  }
+
+  .landing__nav {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-bottom: 8px;
+  }
+
+  .landing__cta {
+    padding: 14px 16px;
+  }
+
+  .landing__bubble {
+    white-space: normal;
+    max-width: 160px;
+    text-align: center;
+    top: -58px;
+  }
+
+  .landing__mascot-wrap {
+    margin-top: 14px;
+  }
+
+  .landing__steps {
+    margin-top: 24px;
+  }
+
+  .landing__footer {
+    margin-top: 20px;
   }
 }

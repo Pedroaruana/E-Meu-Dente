@@ -37,6 +37,19 @@ const TOOTH_NAMES = [
 const FDI_UPPER = [17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27]
 const FDI_LOWER = [47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37]
 
+// o fov vertical fixo (42) foi calibrado olhando pra tela larga — num celular
+// em pe o aspect ratio despenca e o fov horizontal junto (ele depende do
+// vertical multiplicado pelo aspect), entao a arcada parecia com "zoom"
+// travado. Abre o fov gradualmente conforme a tela fica mais estreita pra
+// compensar, sem exagerar a distorcao de perspectiva em telas largas.
+function fovForAspect(aspect: number) {
+  const WIDE_ASPECT = 1.3
+  const NARROW_ASPECT = 0.45
+  if (aspect >= WIDE_ASPECT) return 42
+  const t = THREE.MathUtils.clamp((WIDE_ASPECT - aspect) / (WIDE_ASPECT - NARROW_ASPECT), 0, 1)
+  return THREE.MathUtils.lerp(42, 60, t)
+}
+
 export const MouthScene = forwardRef<MouthSceneHandle, MouthSceneProps>(function MouthScene(
   { onBack, onToothSelected },
   ref,
@@ -111,7 +124,7 @@ export const MouthScene = forwardRef<MouthSceneHandle, MouthSceneProps>(function
 
     const camHome = homeRef.current.pos
     const lookHome = homeRef.current.look
-    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 40)
+    const camera = new THREE.PerspectiveCamera(fovForAspect(width / height), width / height, 0.1, 40)
     camera.position.set(0, 0.9, 6.5)
 
     const gumMat = new THREE.MeshPhysicalMaterial({ color: 0xd66a76, roughness: 0.38, clearcoat: 0.7, clearcoatRoughness: 0.22 })
@@ -384,6 +397,7 @@ export const MouthScene = forwardRef<MouthSceneHandle, MouthSceneProps>(function
       const w = container!.clientWidth
       const h = container!.clientHeight
       camera.aspect = w / h
+      camera.fov = fovForAspect(w / h)
       camera.updateProjectionMatrix()
       renderer.setSize(w, h)
       composer.setSize(w, h)
@@ -461,7 +475,7 @@ export const MouthScene = forwardRef<MouthSceneHandle, MouthSceneProps>(function
           {hoverLabel}
         </div>
       )}
-      <p className="mouth-scene__hint">gire com o mouse e clique no dente que está te incomodando</p>
+      <p className="mouth-scene__hint">toque ou clique no dente que está te incomodando</p>
       <div className="mouth-scene__logo">
         <span className="mouth-scene__logo-mark">🦷</span>
         <span className="mouth-scene__logo-text">E Meu Dente?</span>

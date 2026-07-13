@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (web)
+        run: pnpm --filter web lint
+
+      - name: Testes (web)
+        run: pnpm --filter web test
+
+      - name: Testes (api)
+        run: pnpm --filter api test
+
+      - name: Build (web)
+        run: pnpm --filter web build
+
+      - name: Build (api)
+        run: pnpm --filter api build

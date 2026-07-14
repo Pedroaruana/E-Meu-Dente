@@ -1,4 +1,4 @@
-# 🦷 E Meu Dente? — Triagem odontológica com modelo 3D
+# 🦷 E Meu Dente? — Triagem odontológica 3D
 
 Aponte o que está incomodando num modelo 3D interativo da boca, responda 3 perguntas rápidas e descubra o que pode estar acontecendo — depois encontre uma clínica perto de você num mapa de verdade.
 

@@ -16,6 +16,13 @@ export interface Clinic {
   address: string
   distanceKm: number
   url: string
+  lat: number
+  lon: number
+}
+
+export interface ClinicSearchResult {
+  origin: { lat: number; lon: number }
+  clinics: Clinic[]
 }
 
 export interface AddressSuggestion {
@@ -49,7 +56,7 @@ export async function fetchDiagnosis(symptomId: string, answers: string[]): Prom
   return response.json() as Promise<Diagnosis>
 }
 
-export async function fetchClinics(address: string, radiusKm: number): Promise<Clinic[]> {
+export async function fetchClinics(address: string, radiusKm: number): Promise<ClinicSearchResult> {
   const url = new URL(`${API_URL}/clinics`)
   url.searchParams.set('address', address)
   url.searchParams.set('radiusKm', String(radiusKm))
@@ -60,8 +67,7 @@ export async function fetchClinics(address: string, radiusKm: number): Promise<C
     throw new ApiError(await parseErrorMessage(response))
   }
 
-  const data = (await response.json()) as { clinics: Clinic[] }
-  return data.clinics
+  return response.json() as Promise<ClinicSearchResult>
 }
 
 export async function fetchAddressSuggestions(query: string): Promise<AddressSuggestion[]> {

@@ -6,6 +6,8 @@ export interface Clinic {
   address: string
   distanceKm: number
   url: string
+  lat: number
+  lon: number
 }
 
 // formula de haversine: distancia em linha reta entre dois pontos na
@@ -29,6 +31,8 @@ export function findNearbyClinics(origin: GeoPoint, radiusKm: number): Clinic[] 
       // pro Google Maps na coordenada exata em vez de uma url quebrada.
       url: `https://www.google.com/maps/search/?api=1&query=${clinic.lat},${clinic.lon}`,
       distanceKm: Math.round(haversineKm(origin, { lat: clinic.lat, lon: clinic.lon }) * 10) / 10,
+      lat: clinic.lat,
+      lon: clinic.lon,
     }))
     .filter((clinic) => clinic.distanceKm <= radiusKm)
     .sort((a, b) => a.distanceKm - b.distanceKm)

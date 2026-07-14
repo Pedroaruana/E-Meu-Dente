@@ -222,6 +222,18 @@
   color: #f09595;
 }
 
+.clinic-map-loading {
+  height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid rgba(143, 208, 221, 0.18);
+  color: #6fb0bf;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
 .result-screen__clinics-count {
   margin: 0 0 12px;
   font-size: 12.5px;

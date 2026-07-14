@@ -1,7 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { fetchAddressSuggestions, fetchClinics, type AddressSuggestion, type Clinic, type Diagnosis } from '../api/client'
 import type { ToothInfo } from './MouthScene'
 import './ResultScreen.css'
+
+// leaflet e as tiles do openstreetmap so importam quando alguem realmente
+// busca clinicas — mesma ideia do lazy load da cena 3d, pra nao pesar o
+// carregamento inicial da tela de resultado com algo que a maioria só usa
+// depois de já estar olhando o diagnostico.
+const ClinicMap = lazy(() => import('./ClinicMap'))
 
 interface ResultScreenProps {
   tooth: ToothInfo
@@ -21,6 +27,7 @@ export function ResultScreen({ tooth, diagnosis, onRestart }: ResultScreenProps)
   const [address, setAddress] = useState('')
   const [maxDistance, setMaxDistance] = useState(10)
   const [clinics, setClinics] = useState<Clinic[] | null>(null)
+  const [origin, setOrigin] = useState<{ lat: number; lon: number } | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -67,10 +74,12 @@ export function ResultScreen({ tooth, diagnosis, onRestart }: ResultScreenProps)
     setError(null)
     try {
       const result = await fetchClinics(searchAddress, maxDistance)
-      setClinics(result)
+      setClinics(result.clinics)
+      setOrigin(result.origin)
     } catch {
       setError('Não conseguimos localizar esse endereço. Tente ser mais específico.')
       setClinics(null)
+      setOrigin(null)
     } finally {
       setLoading(false)
     }
@@ -151,6 +160,12 @@ export function ResultScreen({ tooth, diagnosis, onRestart }: ResultScreenProps)
         </div>
 
         {error && <p className="result-screen__error">{error}</p>}
+
+        {origin && clinics && (
+          <Suspense fallback={<div className="clinic-map-loading">carregando mapa…</div>}>
+            <ClinicMap origin={origin} clinics={clinics} />
+          </Suspense>
+        )}
 
         {clinics && (
           <>

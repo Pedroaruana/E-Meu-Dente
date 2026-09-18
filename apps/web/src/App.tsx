@@ -1,4 +1,5 @@
 import { lazy, Suspense, useMemo, useRef, useState } from 'react'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { Landing } from './components/Landing'
 import type { MouthSceneHandle, ToothInfo } from './components/MouthScene'
 import { NoWebGLFallback } from './components/NoWebGLFallback'
@@ -91,7 +92,7 @@ function App() {
 }
 
 // rota leve baseada em pathname, sem depender do react-router — o app tem
-// poucas paginas fora do fluxo principal, entao uma lib de rotas seria
+// so 3 paginas fora do fluxo principal, entao uma lib de rotas seria
 // complexidade a mais sem necessidade real.
 function AppRouter() {
   const pathname = window.location.pathname
@@ -99,4 +100,10 @@ function AppRouter() {
   return <App />
 }
 
-export default AppRouter
+export default function Root() {
+  return (
+    <ErrorBoundary>
+      <AppRouter />
+    </ErrorBoundary>
+  )
+}

@@ -2,6 +2,7 @@ import { lazy, Suspense, useMemo, useRef, useState } from 'react'
 import { Landing } from './components/Landing'
 import type { MouthSceneHandle, ToothInfo } from './components/MouthScene'
 import { NoWebGLFallback } from './components/NoWebGLFallback'
+import { NotFoundPage } from './components/NotFoundPage'
 import { SymptomPanel, type Symptom } from './components/SymptomPanel'
 import { QuestionFlow } from './components/QuestionFlow'
 import { ResultScreen } from './components/ResultScreen'
@@ -89,4 +90,13 @@ function App() {
   return <Landing onEnter={() => setScreen('scene3d')} />
 }
 
-export default App
+// rota leve baseada em pathname, sem depender do react-router — o app tem
+// poucas paginas fora do fluxo principal, entao uma lib de rotas seria
+// complexidade a mais sem necessidade real.
+function AppRouter() {
+  const pathname = window.location.pathname
+  if (pathname !== '/') return <NotFoundPage />
+  return <App />
+}
+
+export default AppRouter
